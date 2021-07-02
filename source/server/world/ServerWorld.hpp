@@ -31,6 +31,7 @@
 
 #include "ServerChunk.hpp"
 #include "ServerScene.hpp"
+#include "TerrainBuilder.hpp"
 #include "TerrainGenerator.hpp"
 #include "World.hpp"
 
@@ -56,10 +57,9 @@ class ServerWorld : public World {
 		void createChunkNeighbours(ServerChunk &chunk);
 
 		ServerChunk &getOrCreateChunk(s32 cx, s32 cy, s32 cz);
+		ServerChunk &getOrCreateChunkAlone(s32 cx, s32 cy, s32 cz);
 
 		Chunk *getChunk(int cx, int cy, int cz) const override;
-
-		bool generateChunk(ServerChunk &chunk);
 
 		const PlayerList &players() const { return m_players; }
 		const Dimension &dimension() const { return m_dimension; }
@@ -88,6 +88,7 @@ class ServerWorld : public World {
 
 		Heightmap m_heightmap;
 		TerrainGenerator m_terrainGenerator;
+		TerrainBuilder m_terrainBuilder;
 
 		ServerCommandHandler *m_server = nullptr;
 

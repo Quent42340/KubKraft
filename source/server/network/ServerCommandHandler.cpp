@@ -222,44 +222,47 @@ void ServerCommandHandler::setupCallbacks() {
 			ServerWorld &world = m_worldController.getWorld(0);
 			Heightmap &heightmap = world.heightmap();
 
-			bool hasFoundPosition = false;
-			for (s32 spawnChunkX = 0 ; spawnChunkX < 16 && !hasFoundPosition ; ++spawnChunkX) {
-				for (s32 spawnChunkY = 0 ; spawnChunkY < 16 && !hasFoundPosition ; ++spawnChunkY) {
-					for(int y = 0 ; y < CHUNK_DEPTH && !hasFoundPosition ; y++) {
-						for(int x = 0 ; x < CHUNK_WIDTH ; x++) {
-							int maxChunkZ = heightmap.getHighestChunkAt(x + spawnChunkX * CHUNK_WIDTH, y + spawnChunkY * CHUNK_DEPTH);
-							int worldZ = heightmap.getHighestBlockAt(x + spawnChunkX * CHUNK_WIDTH, y + spawnChunkY * CHUNK_DEPTH) + 1;
-							int z = gk::pmod(worldZ, CHUNK_WIDTH);
+			player->setPosition(0, 0, 100);
 
-							world.generateChunk(world.getOrCreateChunk(spawnChunkX - 1, spawnChunkY,     maxChunkZ));
-							world.generateChunk(world.getOrCreateChunk(spawnChunkX + 1, spawnChunkY,     maxChunkZ));
-							world.generateChunk(world.getOrCreateChunk(spawnChunkX,     spawnChunkY - 1, maxChunkZ));
-							world.generateChunk(world.getOrCreateChunk(spawnChunkX,     spawnChunkY + 1, maxChunkZ));
-							world.generateChunk(world.getOrCreateChunk(spawnChunkX,     spawnChunkY,     maxChunkZ - 1));
-							world.generateChunk(world.getOrCreateChunk(spawnChunkX,     spawnChunkY,     maxChunkZ + 1));
-
-							ServerChunk &chunk = world.getOrCreateChunk(spawnChunkX, spawnChunkY, maxChunkZ);
-							world.generateChunk(chunk);
-
-							const BlockState *blockBelow = chunk.getBlockState(x, y, z - 1);
-							const Block &blockFeet = m_registry.getBlock(chunk.getBlock(x, y, z));
-							const Block &blockHead = m_registry.getBlock(chunk.getBlock(x, y, z + 1));
-
-							if (blockFeet.id() == 0 && blockHead.id() == 0
-							&& blockBelow && blockBelow->isCollidable()
-							&& blockBelow->drawType() != BlockDrawType::Leaves)
-							{
-								player->setPosition(x + spawnChunkX * CHUNK_WIDTH + .5, y + spawnChunkY * CHUNK_DEPTH + .5, worldZ + .2);
-								hasFoundPosition = true;
-								break;
-							}
-						}
-					}
-				}
-			}
-
-			if (!hasFoundPosition)
-				gkError() << "Can't find a good position for the player";
+			// FIXME
+			// bool hasFoundPosition = false;
+			// for (s32 spawnChunkX = 0 ; spawnChunkX < 16 && !hasFoundPosition ; ++spawnChunkX) {
+			// 	for (s32 spawnChunkY = 0 ; spawnChunkY < 16 && !hasFoundPosition ; ++spawnChunkY) {
+			// 		for(int y = 0 ; y < CHUNK_DEPTH && !hasFoundPosition ; y++) {
+			// 			for(int x = 0 ; x < CHUNK_WIDTH ; x++) {
+			// 				int maxChunkZ = heightmap.getHighestChunkAt(x + spawnChunkX * CHUNK_WIDTH, y + spawnChunkY * CHUNK_DEPTH);
+			// 				int worldZ = heightmap.getHighestBlockAt(x + spawnChunkX * CHUNK_WIDTH, y + spawnChunkY * CHUNK_DEPTH) + 1;
+			// 				int z = gk::pmod(worldZ, CHUNK_WIDTH);
+            //
+			// 				world.generateChunk(world.getOrCreateChunk(spawnChunkX - 1, spawnChunkY,     maxChunkZ));
+			// 				world.generateChunk(world.getOrCreateChunk(spawnChunkX + 1, spawnChunkY,     maxChunkZ));
+			// 				world.generateChunk(world.getOrCreateChunk(spawnChunkX,     spawnChunkY - 1, maxChunkZ));
+			// 				world.generateChunk(world.getOrCreateChunk(spawnChunkX,     spawnChunkY + 1, maxChunkZ));
+			// 				world.generateChunk(world.getOrCreateChunk(spawnChunkX,     spawnChunkY,     maxChunkZ - 1));
+			// 				world.generateChunk(world.getOrCreateChunk(spawnChunkX,     spawnChunkY,     maxChunkZ + 1));
+            //
+			// 				ServerChunk &chunk = world.getOrCreateChunk(spawnChunkX, spawnChunkY, maxChunkZ);
+			// 				world.generateChunk(chunk);
+            //
+			// 				const BlockState *blockBelow = chunk.getBlockState(x, y, z - 1);
+			// 				const Block &blockFeet = m_registry.getBlock(chunk.getBlock(x, y, z));
+			// 				const Block &blockHead = m_registry.getBlock(chunk.getBlock(x, y, z + 1));
+            //
+			// 				if (blockFeet.id() == 0 && blockHead.id() == 0
+			// 				&& blockBelow && blockBelow->isCollidable()
+			// 				&& blockBelow->drawType() != BlockDrawType::Leaves)
+			// 				{
+			// 					player->setPosition(x + spawnChunkX * CHUNK_WIDTH + .5, y + spawnChunkY * CHUNK_DEPTH + .5, worldZ + .2);
+			// 					hasFoundPosition = true;
+			// 					break;
+			// 				}
+			// 			}
+			// 		}
+			// 	}
+			// }
+            //
+			// if (!hasFoundPosition)
+			// 	gkError() << "Can't find a good position for the player";
 
 			player->setHeldItemSlot(0);
 		}

@@ -41,6 +41,7 @@ ServerWorld::ServerWorld(PlayerList &players, const Dimension &dimension, s32 se
 	  m_dimension(dimension),
 	  m_heightmap(seed),
 	  m_terrainGenerator(m_heightmap, dimension, seed),
+	  m_terrainBuilder(dimension, seed),
 	  m_scene(players),
 	  m_seed(seed)
 {
@@ -57,6 +58,8 @@ void ServerWorld::update(bool doTick) {
 
 		m_scene.update();
 	}
+
+	m_terrainBuilder.update(*this);
 }
 
 void ServerWorld::updatePlayerChunks(ServerPlayer &player, s32 cx, s32 cy, s32 cz) {
@@ -137,14 +140,19 @@ void ServerWorld::createChunkNeighbours(ServerChunk &chunk) {
 }
 
 ServerChunk &ServerWorld::getOrCreateChunk(s32 cx, s32 cy, s32 cz) {
+	ServerChunk &chunk = getOrCreateChunkAlone(cx, cy, cz);
+
+	createChunkNeighbours(chunk);
+
+	return chunk;
+}
+
+ServerChunk &ServerWorld::getOrCreateChunkAlone(s32 cx, s32 cy, s32 cz) {
 	ServerChunk *chunk = (ServerChunk *)getChunk(cx, cy, cz);
 	if (!chunk) {
 		auto it = m_chunks.emplace(gk::Vector3i{cx, cy, cz}, new ServerChunk(cx, cy, cz, *this));
 		chunk = it.first->second.get();
 	}
-
-	// Create our neighbours
-	createChunkNeighbours(*chunk);
 
 	return *chunk;
 }
@@ -155,17 +163,6 @@ Chunk *ServerWorld::getChunk(int cx, int cy, int cz) const {
 		return nullptr;
 
 	return it->second.get();
-}
-
-bool ServerWorld::generateChunk(ServerChunk &chunk) {
-	if (chunk.isInitialized()) return false;
-
-	createChunkNeighbours(chunk);
-
-	m_terrainGenerator.generate(chunk);
-	chunk.setInitialized(true);
-
-	return true;
 }
 
 void ServerWorld::processSendRequests() {
@@ -199,28 +196,29 @@ void ServerWorld::processSendRequests() {
 			// bool addChunkBackToQueue = false;
 			if (glm::length(playerPos - chunkWorldPos) < (ServerConfig::renderDistance + 2) * CHUNK_WIDTH) {
 				if (player.isOnline() && !player.isChunkLoaded(chunkPos)) {
-					ServerChunk &chunk = getOrCreateChunk(chunkPos.x, chunkPos.y, chunkPos.z);
+					// ServerChunk &chunk = getOrCreateChunk(chunkPos.x, chunkPos.y, chunkPos.z);
 
 					// chunksGenerated +=
-					generateChunk(chunk);
-					generateChunk((ServerChunk &)*chunk.getSurroundingChunk(Chunk::West));
-					generateChunk((ServerChunk &)*chunk.getSurroundingChunk(Chunk::East));
-					generateChunk((ServerChunk &)*chunk.getSurroundingChunk(Chunk::South));
-					generateChunk((ServerChunk &)*chunk.getSurroundingChunk(Chunk::North));
-					generateChunk((ServerChunk &)*chunk.getSurroundingChunk(Chunk::Bottom));
-					generateChunk((ServerChunk &)*chunk.getSurroundingChunk(Chunk::Top));
+					m_terrainBuilder.addGenerationJob(*this, chunkPos, m_heightmap);
 
-					if (!chunk.areAllNeighboursInitialized())
-						gkWarning() << "All neighbours of chunk" << chunkPos << "aren't initialized when they should be";
-					else {
-						chunk.lightmap().updateLights();
-						chunk.setReadyToSend();
+					// generateChunk((ServerChunk &)*chunk.getSurroundingChunk(Chunk::West));
+					// generateChunk((ServerChunk &)*chunk.getSurroundingChunk(Chunk::East));
+					// generateChunk((ServerChunk &)*chunk.getSurroundingChunk(Chunk::South));
+					// generateChunk((ServerChunk &)*chunk.getSurroundingChunk(Chunk::North));
+					// generateChunk((ServerChunk &)*chunk.getSurroundingChunk(Chunk::Bottom));
+					// generateChunk((ServerChunk &)*chunk.getSurroundingChunk(Chunk::Top));
 
-						addChunkToProcess(&chunk);
+					// if (!chunk.areAllNeighboursInitialized())
+					// 	gkWarning() << "All neighbours of chunk" << chunkPos << "aren't initialized when they should be";
+					// else {
+					// 	chunk.lightmap().updateLights();
+					// 	chunk.setReadyToSend();
+                    //
+					// 	addChunkToProcess(&chunk);
 						player.addLoadedChunk(chunkPos);
-
-						// ++chunksSent;
-					}
+                    //
+					// 	// ++chunksSent;
+					// }
 				}
 
 				// gkDebug() << "OK for chunk" << chunkPos.x << chunkPos.y << chunkPos.z << ":" << glm::length(playerPos - chunkWorldPos) << "<" << (int)ServerConfig::renderDistance * CHUNK_WIDTH;

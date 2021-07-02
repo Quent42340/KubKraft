@@ -37,29 +37,33 @@ ChunkLightmap::ChunkLightmap(Chunk *chunk) : m_chunk(chunk) {
 	std::memset(m_lightMap, 0, sizeof(m_lightMap));
 }
 
-bool ChunkLightmap::addTorchlight(int x, int y, int z, u8 val) {
-	if(x < 0)             return m_chunk->getSurroundingChunk(0) ? m_chunk->getSurroundingChunk(0)->lightmap().addTorchlight(x + CHUNK_WIDTH, y, z, val) : false;
-	if(x >= CHUNK_WIDTH)  return m_chunk->getSurroundingChunk(1) ? m_chunk->getSurroundingChunk(1)->lightmap().addTorchlight(x - CHUNK_WIDTH, y, z, val) : false;
-	if(y < 0)             return m_chunk->getSurroundingChunk(2) ? m_chunk->getSurroundingChunk(2)->lightmap().addTorchlight(x, y + CHUNK_DEPTH, z, val) : false;
-	if(y >= CHUNK_DEPTH)  return m_chunk->getSurroundingChunk(3) ? m_chunk->getSurroundingChunk(3)->lightmap().addTorchlight(x, y - CHUNK_DEPTH, z, val) : false;
-	if(z < 0)             return m_chunk->getSurroundingChunk(4) ? m_chunk->getSurroundingChunk(4)->lightmap().addTorchlight(x, y, z + CHUNK_HEIGHT, val): false;
-	if(z >= CHUNK_HEIGHT) return m_chunk->getSurroundingChunk(5) ? m_chunk->getSurroundingChunk(5)->lightmap().addTorchlight(x, y, z - CHUNK_HEIGHT, val): false;
+bool ChunkLightmap::addTorchlight(int x, int y, int z, u8 val, bool raw) {
+	if(x < 0)             return m_chunk->getSurroundingChunk(0) ? m_chunk->getSurroundingChunk(0)->lightmap().addTorchlight(x + CHUNK_WIDTH, y, z, val, raw) : false;
+	if(x >= CHUNK_WIDTH)  return m_chunk->getSurroundingChunk(1) ? m_chunk->getSurroundingChunk(1)->lightmap().addTorchlight(x - CHUNK_WIDTH, y, z, val, raw) : false;
+	if(y < 0)             return m_chunk->getSurroundingChunk(2) ? m_chunk->getSurroundingChunk(2)->lightmap().addTorchlight(x, y + CHUNK_DEPTH, z, val, raw) : false;
+	if(y >= CHUNK_DEPTH)  return m_chunk->getSurroundingChunk(3) ? m_chunk->getSurroundingChunk(3)->lightmap().addTorchlight(x, y - CHUNK_DEPTH, z, val, raw) : false;
+	if(z < 0)             return m_chunk->getSurroundingChunk(4) ? m_chunk->getSurroundingChunk(4)->lightmap().addTorchlight(x, y, z + CHUNK_HEIGHT, val, raw): false;
+	if(z >= CHUNK_HEIGHT) return m_chunk->getSurroundingChunk(5) ? m_chunk->getSurroundingChunk(5)->lightmap().addTorchlight(x, y, z - CHUNK_HEIGHT, val, raw): false;
 
-	if (!setTorchlight(x, y, z, val)) return false;
+	if ((raw && !setTorchlightRaw(x, y, z, val))
+	 || (!raw && !setTorchlight(x, y, z, val)))
+		return false;
 
 	m_torchlightBfsQueue.emplace(x, y, z);
 	return true;
 }
 
-bool ChunkLightmap::addSunlight(int x, int y, int z, u8 val) {
-	if(x < 0)             return m_chunk->getSurroundingChunk(0) ? m_chunk->getSurroundingChunk(0)->lightmap().addSunlight(x + CHUNK_WIDTH, y, z, val) : false;
-	if(x >= CHUNK_WIDTH)  return m_chunk->getSurroundingChunk(1) ? m_chunk->getSurroundingChunk(1)->lightmap().addSunlight(x - CHUNK_WIDTH, y, z, val) : false;
-	if(y < 0)             return m_chunk->getSurroundingChunk(2) ? m_chunk->getSurroundingChunk(2)->lightmap().addSunlight(x, y + CHUNK_DEPTH, z, val) : false;
-	if(y >= CHUNK_DEPTH)  return m_chunk->getSurroundingChunk(3) ? m_chunk->getSurroundingChunk(3)->lightmap().addSunlight(x, y - CHUNK_DEPTH, z, val) : false;
-	if(z < 0)             return m_chunk->getSurroundingChunk(4) ? m_chunk->getSurroundingChunk(4)->lightmap().addSunlight(x, y, z + CHUNK_HEIGHT, val): false;
-	if(z >= CHUNK_HEIGHT) return m_chunk->getSurroundingChunk(5) ? m_chunk->getSurroundingChunk(5)->lightmap().addSunlight(x, y, z - CHUNK_HEIGHT, val): false;
+bool ChunkLightmap::addSunlight(int x, int y, int z, u8 val, bool raw) {
+	if(x < 0)             return m_chunk->getSurroundingChunk(0) ? m_chunk->getSurroundingChunk(0)->lightmap().addSunlight(x + CHUNK_WIDTH, y, z, val, raw) : false;
+	if(x >= CHUNK_WIDTH)  return m_chunk->getSurroundingChunk(1) ? m_chunk->getSurroundingChunk(1)->lightmap().addSunlight(x - CHUNK_WIDTH, y, z, val, raw) : false;
+	if(y < 0)             return m_chunk->getSurroundingChunk(2) ? m_chunk->getSurroundingChunk(2)->lightmap().addSunlight(x, y + CHUNK_DEPTH, z, val, raw) : false;
+	if(y >= CHUNK_DEPTH)  return m_chunk->getSurroundingChunk(3) ? m_chunk->getSurroundingChunk(3)->lightmap().addSunlight(x, y - CHUNK_DEPTH, z, val, raw) : false;
+	if(z < 0)             return m_chunk->getSurroundingChunk(4) ? m_chunk->getSurroundingChunk(4)->lightmap().addSunlight(x, y, z + CHUNK_HEIGHT, val, raw): false;
+	if(z >= CHUNK_HEIGHT) return m_chunk->getSurroundingChunk(5) ? m_chunk->getSurroundingChunk(5)->lightmap().addSunlight(x, y, z - CHUNK_HEIGHT, val, raw): false;
 
-	if (!setSunlight(x, y, z, val)) return false;
+	if ((raw && !setSunlightRaw(x, y, z, val))
+	 || (!raw && !setSunlight(x, y, z, val)))
+		return false;
 
 	m_sunlightBfsQueue.emplace(x, y, z);
 	return true;
@@ -287,14 +291,12 @@ bool ChunkLightmap::setSunlight(int x, int y, int z, u8 val) {
 	if(z < 0)             return m_chunk->getSurroundingChunk(4) ? m_chunk->getSurroundingChunk(4)->lightmap().setSunlight(x, y, z + CHUNK_HEIGHT, val): false;
 	if(z >= CHUNK_HEIGHT) return m_chunk->getSurroundingChunk(5) ? m_chunk->getSurroundingChunk(5)->lightmap().setSunlight(x, y, z - CHUNK_HEIGHT, val): false;
 
-	if ((m_lightMap[z][y][x] & 0xf0) == ((val << 4) & 0xf0)) return false;
+	if (setSunlightRaw(x, y, z, val)) {
+		m_chunk->world().addChunkToUpdate(m_chunk);
+		return true;
+	}
 
-	m_lightMap[z][y][x] = u8((m_lightMap[z][y][x] & 0xf) | ((val << 4) & 0xf0));
-
-	m_hasChanged = true;
-	m_chunk->world().addChunkToUpdate(m_chunk);
-
-	return true;
+	return false;
 }
 
 bool ChunkLightmap::setTorchlight(int x, int y, int z, u8 val) {
@@ -305,12 +307,30 @@ bool ChunkLightmap::setTorchlight(int x, int y, int z, u8 val) {
 	if(z < 0)             return m_chunk->getSurroundingChunk(4) ? m_chunk->getSurroundingChunk(4)->lightmap().setTorchlight(x, y, z + CHUNK_HEIGHT, val): false;
 	if(z >= CHUNK_HEIGHT) return m_chunk->getSurroundingChunk(5) ? m_chunk->getSurroundingChunk(5)->lightmap().setTorchlight(x, y, z - CHUNK_HEIGHT, val): false;
 
+	if (setTorchlightRaw(x, y, z, val)) {
+		m_chunk->world().addChunkToUpdate(m_chunk);
+		return true;
+	}
+
+	return false;
+}
+
+bool ChunkLightmap::setSunlightRaw(int x, int y, int z, u8 val) {
+	if ((m_lightMap[z][y][x] & 0xf0) == ((val << 4) & 0xf0)) return false;
+
+	m_lightMap[z][y][x] = u8((m_lightMap[z][y][x] & 0xf) | ((val << 4) & 0xf0));
+
+	m_hasChanged = true;
+
+	return true;
+}
+
+bool ChunkLightmap::setTorchlightRaw(int x, int y, int z, u8 val) {
 	if ((m_lightMap[z][y][x] & 0xf) == (val & 0xf)) return false;
 
 	m_lightMap[z][y][x] = (m_lightMap[z][y][x] & 0xf0) | (val & 0xf);
 
 	m_hasChanged = true;
-	m_chunk->world().addChunkToUpdate(m_chunk);
 
 	return true;
 }
