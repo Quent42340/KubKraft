@@ -34,11 +34,13 @@ void BlockState::serialize(sf::Packet &packet) const {
 		<< m_boundingBox << u8(m_drawType) << m_colorMultiplier
 		<< m_isOpaque << m_isLightSource
 		<< m_inventoryImage << m_fogDepth << m_fogColor
-		<< m_drawOffset << m_isCollidable << m_attrs;
+		<< m_drawOffset << m_isCollidable << m_attrs
+		<< u8(m_multiboxType) << m_multibox << m_connectedMultibox;
 }
 
 void BlockState::deserialize(sf::Packet &packet) {
 	u8 drawType;
+	u8 multiboxType;
 
 	packet >> m_id >> m_label >> m_tiles
 		>> m_itemDrop >> m_itemDropAmount
@@ -46,9 +48,11 @@ void BlockState::deserialize(sf::Packet &packet) {
 		>> m_boundingBox >> drawType >> m_colorMultiplier
 		>> m_isOpaque >> m_isLightSource
 		>> m_inventoryImage >> m_fogDepth >> m_fogColor
-		>> m_drawOffset >> m_isCollidable >> m_attrs;
+		>> m_drawOffset >> m_isCollidable >> m_attrs
+		>> multiboxType >> m_multibox >> m_connectedMultibox;
 
 	m_drawType = BlockDrawType(drawType);
+	m_multiboxType = MultiboxType(multiboxType);
 }
 
 bool BlockState::isOpaque() const {

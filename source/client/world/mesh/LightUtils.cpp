@@ -24,7 +24,6 @@
  *
  * =====================================================================================
  */
-#include "Config.hpp"
 #include "LightUtils.hpp"
 
 // Based on this article: https://0fps.net/2013/07/03/ambient-occlusion-for-minecraft-like-worlds/
@@ -63,7 +62,7 @@ u8 LightUtils::getAmbientOcclusion(s8f x, s8f y, s8f z,
 u8 LightUtils::getLightForVertex(LightType lightType, s8f x, s8f y, s8f z,
                                  const gk::Vector3<s8f> &offset,
                                  const gk::Vector3<s8f> &normal,
-                                 const ChunkData &chunk)
+                                 const ChunkData &chunk, bool useAO)
 {
 	gk::Vector3<s8f> minOffset{
 		(normal.x != 0) ? offset.x : s8f(0),
@@ -100,7 +99,7 @@ u8 LightUtils::getLightForVertex(LightType lightType, s8f x, s8f y, s8f z,
 
 		// If the chunk is initialized, add the light value to the total
 		// But only add dark blocks if AO is set on Smooth Lighting
-		if (lightValues[i] != -1 && (Config::ambientOcclusion == 2 || lightValues[i] != 0)) {
+		if (lightValues[i] != -1 && (useAO || lightValues[i] != 0)) {
 			total += (u8)lightValues[i];
 			++count;
 		}

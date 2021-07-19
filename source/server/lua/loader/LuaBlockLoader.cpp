@@ -74,6 +74,10 @@ void LuaBlockLoader::loadBlockState(BlockState &state, const sol::table &table, 
 		state.tiles(tiles);
 
 	loadDrawType(state, table, block);
+
+	if (state.drawType() == BlockDrawType::Multibox)
+		loadMultibox(state, table);
+
 	loadProperties(state, table);
 	loadBoundingBox(state, table);
 	loadItemDrop(state, table);
@@ -129,6 +133,133 @@ inline void LuaBlockLoader::loadProperties(BlockState &state, const sol::table &
 		state.isCollidable(table["is_collidable"].get<bool>());
 }
 
+inline void LuaBlockLoader::loadMultibox(BlockState &state, const sol::table &table) const {
+	sol::optional<sol::table> multibox = table["multibox"];
+	if (multibox != sol::nullopt) {
+		static std::unordered_map<std::string, BlockState::MultiboxType> typeMap{
+			{"fixed",       BlockState::Fixed},
+			{"connected",   BlockState::Connected},
+			{"wallmounted", BlockState::WallMounted},
+		};
+
+		sol::table multiboxTable = multibox.value();
+		std::string type = multiboxTable["type"].get<std::string>();
+
+		auto it = typeMap.find(type);
+		if (it != typeMap.end()) {
+			state.multiboxType(it->second);
+		}
+		else {
+			gkError() << ("For block '" + state.block().stringID() + "': multibox type '" + type + "' doesn't exist").c_str();
+			return;
+		}
+
+		if (state.multiboxType() == BlockState::Fixed || state.multiboxType() == BlockState::Connected) {
+			sol::table fixedTable = multiboxTable["fixed"];
+			for (auto &it : fixedTable) {
+				if (it.second.get_type() == sol::type::table) {
+					state.addMultibox(gk::FloatBox{
+						it.second.as<sol::table>().get<float>(1),
+						it.second.as<sol::table>().get<float>(2),
+						it.second.as<sol::table>().get<float>(3),
+						it.second.as<sol::table>().get<float>(4),
+						it.second.as<sol::table>().get<float>(5),
+						it.second.as<sol::table>().get<float>(6),
+					});
+				}
+				else if (it.second.get_type() == sol::type::number) {
+					state.addMultibox(gk::FloatBox{
+						fixedTable.get<float>(1),
+						fixedTable.get<float>(2),
+						fixedTable.get<float>(3),
+						fixedTable.get<float>(4),
+						fixedTable.get<float>(5),
+						fixedTable.get<float>(6),
+					});
+					break;
+				}
+			}
+		}
+
+		if (state.multiboxType() == BlockState::Connected) {
+			const char *names[6] = {
+				"connect_west",
+				"connect_east",
+				"connect_south",
+				"connect_north",
+				"connect_bottom",
+				"connect_top",
+			};
+
+			for (int i = 0 ; i < 6 ; ++i) {
+				sol::optional<sol::table> connectObject = multiboxTable[names[i]];
+				if (connectObject != sol::nullopt) {
+					for (auto &it : connectObject.value()) {
+						if (it.second.get_type() == sol::type::table) {
+							state.addConnectedMultibox((BlockFace)i, gk::FloatBox{
+								it.second.as<sol::table>().get<float>(1),
+								it.second.as<sol::table>().get<float>(2),
+								it.second.as<sol::table>().get<float>(3),
+								it.second.as<sol::table>().get<float>(4),
+								it.second.as<sol::table>().get<float>(5),
+								it.second.as<sol::table>().get<float>(6),
+							});
+						}
+						else if (it.second.get_type() == sol::type::number) {
+							state.addConnectedMultibox((BlockFace)i, gk::FloatBox{
+								connectObject.value().get<float>(1),
+								connectObject.value().get<float>(2),
+								connectObject.value().get<float>(3),
+								connectObject.value().get<float>(4),
+								connectObject.value().get<float>(5),
+								connectObject.value().get<float>(6),
+							});
+							break;
+						}
+					}
+				}
+			}
+		}
+
+		if (state.multiboxType() == BlockState::WallMounted) {
+			const char *names[3] = {
+				"wall_top",
+				"wall_bottom",
+				"wall_side",
+			};
+
+			for (int i = 0 ; i < 3 ; ++i) {
+				sol::optional<sol::table> wallObject = multiboxTable[names[i]];
+				if (wallObject != sol::nullopt) {
+					for (auto &it : wallObject.value()) {
+						if (it.second.get_type() == sol::type::table) {
+							state.addWallMountedMultibox((BlockState::WallMountedBoxType)i, gk::FloatBox{
+								it.second.as<sol::table>().get<float>(1),
+								it.second.as<sol::table>().get<float>(2),
+								it.second.as<sol::table>().get<float>(3),
+								it.second.as<sol::table>().get<float>(4),
+								it.second.as<sol::table>().get<float>(5),
+								it.second.as<sol::table>().get<float>(6),
+							});
+						}
+						else if (it.second.get_type() == sol::type::number) {
+							state.addWallMountedMultibox((BlockState::WallMountedBoxType)i, gk::FloatBox{
+								wallObject.value().get<float>(1),
+								wallObject.value().get<float>(2),
+								wallObject.value().get<float>(3),
+								wallObject.value().get<float>(4),
+								wallObject.value().get<float>(5),
+								wallObject.value().get<float>(6),
+							});
+							break;
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
 inline void LuaBlockLoader::loadBoundingBox(BlockState &state, const sol::table &table) const {
 	sol::optional<sol::table> boundingBox = table["bounding_box"];
 	if (boundingBox != sol::nullopt) {
@@ -148,12 +279,13 @@ inline void LuaBlockLoader::loadDrawType(BlockState &state, const sol::table &ta
 	if (drawTypeObject.valid()) {
 		if (drawTypeObject.get_type() == sol::type::string) {
 			static const std::unordered_map<std::string, BlockDrawType> drawTypes = {
-				{"solid",  BlockDrawType::Solid},
-				{"xshape", BlockDrawType::XShape},
-				{"leaves", BlockDrawType::Leaves},
-				{"liquid", BlockDrawType::Liquid},
-				{"glass",  BlockDrawType::Glass},
-				{"cactus", BlockDrawType::Cactus},
+				{"solid",    BlockDrawType::Solid},
+				{"xshape",   BlockDrawType::XShape},
+				{"leaves",   BlockDrawType::Leaves},
+				{"liquid",   BlockDrawType::Liquid},
+				{"glass",    BlockDrawType::Glass},
+				{"cactus",   BlockDrawType::Cactus},
+				{"multibox", BlockDrawType::Multibox},
 				{"boundingbox", BlockDrawType::BoundingBox}, // FIXME: Temporary
 			};
 
@@ -270,6 +402,11 @@ inline void LuaBlockLoader::loadGroups(ServerBlock &block, const sol::table &tab
 inline void LuaBlockLoader::loadParams(ServerBlock &block) const {
 	if (block.isRotatable())
 		block.param().allocateBits(BlockParam::Type::Rotation, 5);
+
+	for (auto &it : block.states()) {
+		if (it.drawType() == BlockDrawType::Multibox && it.multiboxType() == BlockState::WallMounted)
+			block.param().allocateBits(BlockParam::Type::WallMounted, 2);
+	}
 
 	if (block.states().size() > 1) {
 		u8 bits = 1;

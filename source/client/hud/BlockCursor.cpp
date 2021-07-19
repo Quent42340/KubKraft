@@ -97,8 +97,9 @@ void BlockCursor::update(const Hotbar &hotbar) {
 	if (selectedBlockChanged)
 		m_animationStart = (m_animationStart) ? ticks : 0;
 
-	// FIXME: This should use block param
-	u8f orientation = m_currentBlock->block().isRotatable() ? m_world.getData(selectedBlock.x, selectedBlock.y, selectedBlock.z) & 0x1F : 0;
+	u16 blockParam = m_world.getData(selectedBlock.x, selectedBlock.y, selectedBlock.z);
+	u8f orientation = m_currentBlock->block().isRotatable() ?
+		(u8f)m_currentBlock->block().param().getParam(BlockParam::Rotation, blockParam) : 0;
 
 	int cursorPos = hotbar.cursorPos();
 	if (cursorPos != -1) {
@@ -118,7 +119,8 @@ void BlockCursor::update(const Hotbar &hotbar) {
 					}
 				}
 
-				timeToBreak = m_currentBlock->timeToBreak(currentStack.item().harvestCapability(), currentStack.item().miningSpeed(), isEffective);
+				timeToBreak = m_currentBlock->timeToBreak(currentStack.item().harvestCapability(),
+					currentStack.item().miningSpeed(), isEffective);
 
 				if ((float)ticks > (float)m_animationStart + timeToBreak * 1000.f) {
 					m_world.setBlock(m_selectedBlock.x, m_selectedBlock.y, m_selectedBlock.z, 0);
@@ -174,7 +176,8 @@ void BlockCursor::activateBlock(const Hotbar &hotbar) {
 		blockActivationSent = true;
 	}
 
-	if (block.id() && !itemActivationSent && !blockActivationSent && hotbar.currentItem().id() && item.isBlock()) {
+	if (block.id() && !itemActivationSent && !blockActivationSent
+	&& hotbar.currentItem().id() && item.isBlock()) {
 		s8 face = (s8)m_selectedBlock.w;
 
 		s32 x = m_selectedBlock.x;
@@ -195,23 +198,48 @@ void BlockCursor::activateBlock(const Hotbar &hotbar) {
 			blockState = m_world.getBlockState(x, y, z);
 		}
 
+		bool isBlockReplacable = !blockState->block().id()
+			|| blockState->drawType() == BlockDrawType::Liquid
+			|| blockState->drawType() == BlockDrawType::XShape;
+
 		// First, we check if the new block is not replacing another block
-		if (blockState && (!blockState->block().id() || blockState->drawType() == BlockDrawType::Liquid || blockState->drawType() == BlockDrawType::XShape)) {
+		if (blockState && isBlockReplacable) {
 			// Second, we check if the new block is not inside the player
 			const Block &newBlock = Registry::getInstance().getBlock(hotbar.currentItem().id());
 			const BlockState &newBlockState = newBlock.getState(0); // FIXME: Get state from item stack
-			gk::FloatBox boundingBox = newBlockState.boundingBox() + gk::Vector3f(float(x - m_player.x()), float(y - m_player.y()), float(z - m_player.z()));
+
+			gk::FloatBox boundingBox = newBlockState.boundingBox() + gk::Vector3f(
+				float(x - m_player.x()),
+				float(y - m_player.y()),
+				float(z - m_player.z())
+			);
 			gk::FloatBox playerBoundingBox = m_player.hitbox();
+
 			if (!boundingBox.intersects(playerBoundingBox) && newBlock.placementConstraints().check(m_world, {x, y, z})) {
 				u32 block = hotbar.currentItem().id();
+				u16 blockParam = m_world.getData(x, y, z);
 				if (newBlock.isRotatable()) {
-					u16 data = m_player.getOppositeDirection() & 0x3;
-					m_world.setData(x, y, z, data);
+					u8f rotation = m_player.getOppositeDirection() & 0x3;
 
-					block |= data << 16;
+					if (newBlock.param().hasParam(BlockParam::Rotation))
+						blockParam = newBlock.param().setParam(BlockParam::Rotation, blockParam, rotation);
 				}
 
+				if (newBlock.param().hasParam(BlockParam::WallMounted)) {
+					u8 wallMounted = 0;
+					if (face == 0 || face == 1 || face == 3 || face == 4)
+						wallMounted = BlockState::WallSides;
+					else if (face == 5)
+						wallMounted = BlockState::WallTop;
+					else if (face == 2)
+						wallMounted = BlockState::WallBottom;
+					blockParam = newBlock.param().setParam(BlockParam::WallMounted, blockParam, wallMounted);
+				}
+
+				m_world.setData(x, y, z, blockParam);
 				m_world.setBlock(x, y, z, hotbar.currentItem().id());
+
+				block |= blockParam << 16;
 
 				m_client.sendPlayerPlaceBlock(x, y, z, block);
 

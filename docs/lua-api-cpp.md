@@ -34,6 +34,8 @@
 
 - `BlockParamType.Rotation`
 - `BlockParamType.State`
+- `BlockParamType.Custom`
+- `BlockParamType.WallMounted`
 - `BlockParamType.Count`
 
 ## BlockState

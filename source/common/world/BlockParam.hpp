@@ -47,9 +47,10 @@ class BlockParam : public gk::ISerializable {
 		void deserialize(sf::Packet &packet) override;
 
 		enum Type {
-			Rotation,
-			State,
-			Custom,
+			Rotation    = 0,
+			State       = 1,
+			Custom      = 2,
+			WallMounted = 3,
 
 			Count
 		};

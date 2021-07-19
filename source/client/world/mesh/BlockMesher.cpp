@@ -105,12 +105,13 @@ void BlockMesher::addBlock(s8f x, s8f y, s8f z, ChunkMeshBuildingJob &job,
 
 		const gk::Vector3<s8f> *vFaceNeighbours[nVertsPerFace]{&corner0, &corner1, &corner2, &corner3};
 
-		addBlockFace(x, y, z, f, job, blockState, normal, faceVerts, vFaceNeighbours);
+		addBlockFace(x, y, z, f, job, blockState, boundingBox, normal, faceVerts, vFaceNeighbours);
 	}
 }
 
 void BlockMesher::addBlockFace(s8f x, s8f y, s8f z, s8f f, ChunkMeshBuildingJob &job,
                               const BlockState &blockState,
+                              const gk::FloatBox &boundingBox,
                               const gk::Vector3<s8f> &normal,
                               const glm::vec3 *const vertexPos[nVertsPerFace],
                               const gk::Vector3<s8f> *const neighbourOfs[nVertsPerFace])
@@ -130,8 +131,6 @@ void BlockMesher::addBlockFace(s8f x, s8f y, s8f z, s8f f, ChunkMeshBuildingJob 
 	 || (blockState.drawType() == BlockDrawType::Cactus && surroundingBlockState->block().id() == blockState.block().id() && f > 3)))
 		return;
 
-	const gk::FloatBox &boundingBox = blockState.boundingBox();
-
 	const std::string &texture = blockState.tiles().getTextureForFace(f);
 	const gk::FloatRect &blockTexCoords = job.textureAtlas->getTexCoords(texture);
 
@@ -150,10 +149,12 @@ void BlockMesher::addBlockFace(s8f x, s8f y, s8f z, s8f f, ChunkMeshBuildingJob 
 	else {
 		U0 = (f == 0) ? 1.f - (boundingBox.y + boundingBox.sizeY) : (f == 1) ? boundingBox.y :
 		     (f == 3) ? 1.f - (boundingBox.x + boundingBox.sizeX) : boundingBox.x;
-		V0 = (f <= 3) ? 1.f - (boundingBox.z + boundingBox.sizeZ) : (f == 4) ? boundingBox.y : 1.f - (boundingBox.y + boundingBox.sizeY);
+		V0 = (f <= 3) ? 1.f - (boundingBox.z + boundingBox.sizeZ) : (f == 4) ? boundingBox.y :
+		                1.f - (boundingBox.y + boundingBox.sizeY);
 		U1 = (f == 0) ? 1.f - boundingBox.y : (f == 1) ? boundingBox.y + boundingBox.sizeY :
 		     (f == 3) ? 1.f - boundingBox.x : boundingBox.x + boundingBox.sizeX;
-		V1 = (f <= 3) ? 1.f - boundingBox.z : (f == 4) ? boundingBox.y + boundingBox.sizeY : 1.f - boundingBox.y;
+		V1 = (f <= 3) ? 1.f - boundingBox.z : (f == 4) ? boundingBox.y + boundingBox.sizeY :
+		                1.f - boundingBox.y;
 	}
 
 	// Prepare vertex information for VBO
@@ -199,21 +200,43 @@ void BlockMesher::addBlockFace(s8f x, s8f y, s8f z, s8f f, ChunkMeshBuildingJob 
 		vertices[v].texCoord[0] = gk::qlerpf(blockTexCoords.x, blockTexCoords.x + blockTexCoords.sizeX, U);
 		vertices[v].texCoord[1] = gk::qlerpf(blockTexCoords.y, blockTexCoords.y + blockTexCoords.sizeY, V);
 
+		// Lighting-based implementation
+		bool useAO = Config::ambientOcclusion == 2 && blockState.drawType() != BlockDrawType::Multibox;
+
 		if (Config::isSmoothLightingEnabled)
-			vertices[v].lightValue[0] = getLightForVertex(LightType::Sun, x, y, z, *neighbourOfs[v], normal, job.chunkData);
+			vertices[v].lightValue[0] = getLightForVertex(LightType::Sun, x, y, z, *neighbourOfs[v], normal, job.chunkData, useAO);
 		else if (blockState.isOpaque())
 			vertices[v].lightValue[0] = job.chunkData.getSunlight(sx, sy, sz);
 		else
 			vertices[v].lightValue[0] = job.chunkData.getSunlight(x, y, z);
 
 		if (Config::isSmoothLightingEnabled && !blockState.isLightSource())
-			vertices[v].lightValue[1] = getLightForVertex(LightType::Torch, x, y, z, *neighbourOfs[v], normal, job.chunkData);
+			vertices[v].lightValue[1] = getLightForVertex(LightType::Torch, x, y, z, *neighbourOfs[v], normal, job.chunkData, useAO);
 		else if (blockState.isOpaque())
 			vertices[v].lightValue[1] = job.chunkData.getTorchlight(sx, sy, sz);
 		else
 			vertices[v].lightValue[1] = job.chunkData.getTorchlight(x, y, z);
 
 		vertices[v].ambientOcclusion = getAmbientOcclusion(x, y, z, *neighbourOfs[v], normal, job.chunkData);
+	}
+
+	// Fix basic ambient occlusion for multibox draw type
+	if (blockState.drawType() == BlockDrawType::Multibox) {
+		float aoValues[nVertsPerFace] = {
+			vertices[0].ambientOcclusion,
+			vertices[1].ambientOcclusion,
+			vertices[2].ambientOcclusion,
+			vertices[3].ambientOcclusion
+		};
+
+		for (u8f v = 0; v < nVertsPerFace; ++v) {
+			float U = (v == 0 || v == 3) ? U0 : U1;
+			float V = 1.f - ((v >= 2) ? V0 : V1);
+
+			float a = gk::lerpf(aoValues[0], aoValues[1], U);
+			float b = gk::lerpf(aoValues[3], aoValues[2], U);
+			vertices[v].ambientOcclusion = gk::lerpf(a, b, V);
+		}
 	}
 
 	auto addVertex = [&](u8 v) {

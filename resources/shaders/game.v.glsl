@@ -49,8 +49,9 @@ void main() {
 	v_lightValue = lightValue;
 
 	if (ambientOcclusion != 4) {
-		const float aovalues[] = float[](0.4, 0.6, 0.8, 1.0);
-		v_ambientOcclusion = aovalues[int(ambientOcclusion)];
+		/* const float aovalues[] = float[](0.4, 0.6, 0.8, 1.0); */
+		/* v_ambientOcclusion = aovalues[int(ambientOcclusion)]; */
+		v_ambientOcclusion = 0.4 + 0.2 * ambientOcclusion;
 	} else {
 		v_ambientOcclusion = 1.0;
 	}

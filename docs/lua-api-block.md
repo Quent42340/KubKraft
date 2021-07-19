@@ -206,6 +206,76 @@ max_stack_size = 64
 
 If not defined, it defaults to the server config.
 
+### `multibox`
+
+To be used with `multibox` draw type.
+
+Type can be `fixed`, `connected` or `wallmounted`.
+
+- `fixed` is just a set of boxes
+- `connected` is like `fixed` but it will connect to surrounding blocks using other sets of boxes
+- `wallmounted` will use a different set of boxes depending on where it has been placed
+
+Examples:
+```lua
+-- Stairs
+multibox = {
+	type = "fixed",
+	fixed = {
+		{0, 0, 0, 1, 1, 0.5},
+		{0, 0, 0.5, 0.5, 1, 0.5},
+	}
+}
+
+-- Fence
+multibox = {
+	type = "connected",
+
+	fixed = {6 / 16, 6 / 16, 0, 4 / 16, 4 / 16, 1},
+
+	connect_west = {
+		{0,       7 / 16,  6 / 16, 6 / 16, 2 / 16, 3 / 16},
+		{0,       7 / 16, 12 / 16, 6 / 16, 2 / 16, 3 / 16},
+	},
+
+	connect_east = {
+		{10 / 16, 7 / 16,  6 / 16, 6 / 16, 2 / 16, 3 / 16},
+		{10 / 16, 7 / 16, 12 / 16, 6 / 16, 2 / 16, 3 / 16},
+	},
+
+	connect_south = {
+		{7 / 16, 0,        6 / 16, 2 / 16, 6 / 16, 3 / 16},
+		{7 / 16, 0,       12 / 16, 2 / 16, 6 / 16, 3 / 16},
+	},
+
+	connect_north = {
+		{7 / 16, 10 / 16,  6 / 16, 2 / 16, 6 / 16, 3 / 16},
+		{7 / 16, 10 / 16, 12 / 16, 2 / 16, 6 / 16, 3 / 16},
+	}
+}
+
+-- Sign
+multibox = {
+	type = "wallmounted",
+
+	wall_top = {
+		{8 / 16, 4 / 16, 8 / 16, 1 / 16, 1 / 16, 8 / 16},
+		{8 / 16, 11 / 16, 8 / 16, 1 / 16, 1 / 16, 8 / 16},
+		{8 / 16, 2 / 16, 2 / 16, 1 / 16, 12 / 16, 6 / 16},
+	},
+
+	wall_bottom = {
+		{8 / 16, 4 / 16, 0, 1 / 16, 1 / 16, 8 / 16},
+		{8 / 16, 11 / 16, 0, 1 / 16, 1 / 16, 8 / 16},
+		{8 / 16, 2 / 16, 8 / 16, 1 / 16, 12 / 16, 6 / 16},
+	},
+
+	wall_side = {
+		{0 / 16, 2 / 16, 8 / 16, 1 / 16, 12 / 16, 6 / 16},
+	},
+},
+```
+
 ### `name`
 
 Label of the block. **Mandatory field.**
@@ -373,6 +443,14 @@ This draw type doesn't do much yet.
 Makes a single mesh with all the connected blocks of the same type in a chunk.
 
 It will be rendered without back-face culling (this is why you can see water surface while being inside).
+
+### `multibox`
+
+Used to draw multiple boxes.
+
+NOTE: Ambient occlusion is currently broken with this draw type.
+
+See `multibox` attribute.
 
 ### `solid`
 

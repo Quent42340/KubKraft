@@ -88,12 +88,14 @@ u16 BlockParam::setParam(u8 type, u16 data, u16 param) const {
 }
 
 std::string BlockParam::getTypeName(u8 type) {
-	std::array<std::string, Type::Count> names = {
+	static std::array<std::string, Type::Count> names = {
 		"Rotation",
 		"State",
+		"Custom",
+		"WallMounted",
 	};
 
-	return names[type];
+	return (type < names.size()) ? names[type] : "UNKNOWN";
 }
 
 // Please update 'docs/lua-api-cpp.md' if you change this
@@ -107,6 +109,8 @@ void BlockParam::initUsertype(sol::state &lua) {
 	lua["BlockParamType"] = lua.create_table_with(
 		"Rotation", Type::Rotation,
 		"State", Type::State,
+		"Custom", Type::Custom,
+		"WallMounted", Type::WallMounted,
 
 		"Count", Type::Count
 	);

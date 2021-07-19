@@ -778,6 +778,130 @@ mod:block {
 	harvest_requirements = Capability.Pickaxe,
 }
 
+mod:block {
+	id = "oak_stairs",
+	name = "Oak Wood Stairs",
+	tiles = "oak_planks.png",
+	groups = {
+		om_material_wood = 1,
+	},
+
+	draw_type = "multibox",
+	is_opaque = false,
+	is_rotatable = true,
+
+	multibox = {
+		type = "fixed",
+		fixed = {
+			{0, 0, 0, 1, 1, 0.5},
+			{0, 0, 0.5, 0.5, 1, 0.5},
+		}
+	}
+}
+
+mod:block {
+	id = "oak_fence",
+	name = "Oak Fence",
+	tiles = "oak_planks.png",
+	groups = {
+		om_material_wood = 1,
+	},
+
+	draw_type = "multibox",
+	is_opaque = false,
+
+	multibox = {
+		type = "connected",
+
+		fixed = {6 / 16, 6 / 16, 0, 4 / 16, 4 / 16, 1},
+
+		connect_west = {
+			{0,       7 / 16,  6 / 16, 6 / 16, 2 / 16, 3 / 16},
+			{0,       7 / 16, 12 / 16, 6 / 16, 2 / 16, 3 / 16},
+		},
+
+		connect_east = {
+			{10 / 16, 7 / 16,  6 / 16, 6 / 16, 2 / 16, 3 / 16},
+			{10 / 16, 7 / 16, 12 / 16, 6 / 16, 2 / 16, 3 / 16},
+		},
+
+		connect_south = {
+			{7 / 16, 0,        6 / 16, 2 / 16, 6 / 16, 3 / 16},
+			{7 / 16, 0,       12 / 16, 2 / 16, 6 / 16, 3 / 16},
+		},
+
+		connect_north = {
+			{7 / 16, 10 / 16,  6 / 16, 2 / 16, 6 / 16, 3 / 16},
+			{7 / 16, 10 / 16, 12 / 16, 2 / 16, 6 / 16, 3 / 16},
+		}
+	}
+}
+
+mod:block {
+	id = "sign",
+	name = "Sign",
+	tiles = "oak_planks.png",
+	groups = {
+		om_material_wood = 1,
+	},
+
+	is_opaque = false,
+	is_rotatable = true,
+	is_collidable = false,
+
+	draw_type = "multibox",
+
+	multibox = {
+		type = "wallmounted",
+
+		wall_top = {
+			{8 / 16, 4 / 16, 8 / 16, 1 / 16, 1 / 16, 8 / 16},
+			{8 / 16, 11 / 16, 8 / 16, 1 / 16, 1 / 16, 8 / 16},
+			{8 / 16, 2 / 16, 2 / 16, 1 / 16, 12 / 16, 6 / 16},
+		},
+
+		wall_bottom = {
+			{8 / 16, 4 / 16, 0, 1 / 16, 1 / 16, 8 / 16},
+			{8 / 16, 11 / 16, 0, 1 / 16, 1 / 16, 8 / 16},
+			{8 / 16, 2 / 16, 8 / 16, 1 / 16, 12 / 16, 6 / 16},
+		},
+
+		wall_side = {
+			{0 / 16, 2 / 16, 8 / 16, 1 / 16, 12 / 16, 6 / 16},
+		},
+	},
+}
+
+mod:block {
+	id = "barrel",
+	name = "Wooden Barrel",
+	tiles = "oak_planks.png",
+	groups = {
+		om_material_wood = 1,
+	},
+
+	is_opaque = false,
+
+	draw_type = "multibox",
+
+	bounding_box = {2/16, 2/16, 0, 12/16, 12/16, 14/16},
+
+	multibox = {
+		type = "fixed",
+
+		fixed = {
+			-- Bottom
+			{ 3/16,  3/16,  0, 10/16, 10/16,  1/16},
+			-- Walls
+			{ 2/16,  2/16,  0, 12/16,  1/16, 14/16},
+			{ 2/16, 13/16,  0, 12/16,  1/16, 14/16},
+			{ 2/16,  2/16,  0,  1/16, 12/16, 14/16},
+			{13/16,  2/16,  0,  1/16, 12/16, 14/16},
+		}
+	}
+}
+
 dofile("blocks/workbench.lua")
 dofile("blocks/furnace.lua")
 dofile("blocks/door.lua")
+

@@ -29,9 +29,6 @@
 #include "ClientWorld.hpp"
 #include "TextureAtlas.hpp"
 
-#include "BlockMesher.hpp"
-#include "XShapeMesher.hpp"
-
 // NOTE: TextureAtlas and Registry are accessed from different threads.
 //
 //       This is not a problem currently since both shouldn’t change during the execution,
@@ -87,6 +84,10 @@ void ChunkMeshBuilder::update() {
 	}
 }
 
+#include "BlockMesher.hpp"
+#include "MultiboxMesher.hpp"
+#include "XShapeMesher.hpp"
+
 ChunkMeshBuildingJob ChunkMeshBuilder::buildChunkMesh(ChunkMeshBuildingJob job) {
 	// For each block, generate its vertices and add them to the list
 	for (s8f z = 0 ; z < CHUNK_HEIGHT ; z++) {
@@ -100,6 +101,8 @@ ChunkMeshBuildingJob ChunkMeshBuilder::buildChunkMesh(ChunkMeshBuildingJob job) 
 
 				if (blockState.drawType() == BlockDrawType::XShape)
 					XShapeMesher::addCross(x, y, z, job, blockState);
+				else if (blockState.drawType() == BlockDrawType::Multibox)
+					MultiboxMesher::addMultibox(x, y, z, job, blockState, blockParam);
 				else
 					BlockMesher::addBlock(x, y, z, job, blockState, blockParam);
 			}

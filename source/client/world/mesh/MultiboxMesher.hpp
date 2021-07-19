@@ -24,23 +24,15 @@
  *
  * =====================================================================================
  */
-#ifndef LIGHTUTILS_HPP_
-#define LIGHTUTILS_HPP_
+#ifndef MULTIBOXMESHER_HPP_
+#define MULTIBOXMESHER_HPP_
 
-#include "BlockMesher.hpp"
+#include "ChunkMeshBuildingJob.hpp"
 
-namespace LightUtils {
-	enum LightType {
-		Sun,
-		Torch
-	};
-
-	u8 getAmbientOcclusion(s8f x, s8f y, s8f z, const gk::Vector3<s8f> &offset,
-	                       const gk::Vector3<s8f> &normal, const ChunkData &chunk);
-
-	u8 getLightForVertex(LightType lightType, s8f x, s8f y, s8f z,
-	                     const gk::Vector3<s8f> &offset,
-	                     const gk::Vector3<s8f> &normal, const ChunkData &chunk, bool useAO);
+class MultiboxMesher {
+	public:
+		static void addMultibox(s8f x, s8f y, s8f z, ChunkMeshBuildingJob &job,
+		                        const BlockState &blockState, u16 blockParam);
 };
 
-#endif // LIGHTUTILS_HPP_
+#endif // MULTIBOXMESHER_HPP_

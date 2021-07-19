@@ -28,7 +28,32 @@
 #define NETWORKUTILS_HPP_
 
 #include <SFML/Network/Packet.hpp>
-//
+
+//======================================================================================
+// std::array
+//======================================================================================
+#include <array>
+
+template<typename T, std::size_t N>
+sf::Packet &operator<<(sf::Packet &packet, const std::array<T, N> &array) {
+	packet << (unsigned int)N;
+	for (auto &it : array)
+		packet << it;
+	return packet;
+}
+
+template<typename T, std::size_t N>
+sf::Packet &operator>>(sf::Packet &packet, std::array<T, N> &array) {
+	unsigned int size;
+	packet >> size;
+
+	for (unsigned int i = 0 ; i < size ; ++i) {
+		packet >> array[i];
+	}
+
+	return packet;
+}
+
 //======================================================================================
 // std::vector
 //======================================================================================
